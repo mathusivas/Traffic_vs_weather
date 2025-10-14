@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow:
+    image: apache/airflow:2.9.2-python3.11
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW_WEBSERVER_SECRET_KEY}
+      - AZURE_STORAGE_ACCOUNT=${AZURE_STORAGE_ACCOUNT}
+      - AZURE_CONTAINER=${AZURE_CONTAINER}
+      - AZURE_ACCOUNT_KEY=${AZURE_ACCOUNT_KEY}
+      - TRAFIKKDATA_API=${TRAFIKKDATA_API}
+      - FROST_CLIENT_ID=${FROST_CLIENT_ID}
+      - _PIP_ADDITIONAL_REQUIREMENTS=requests==2.32.3 pandas==2.2.2 azure-storage-blob==12.19.1 python-dotenv==1.0.1 apache-airflow-providers-databricks==6.0.0 pyarrow==15.0.2
+      - AIRFLOW_CONN_DATABRICKS_DEFAULT={"conn_type":"databricks","host":"${DATABRICKS_HOST}","extra":{"token":"${DATABRICKS_TOKEN}"}}
+
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/include:/opt/airflow/include
+    ports:
+      - "8080:8080"
+    command: >
+      bash -lc "airflow db upgrade &&
+      airflow users create -u admin -p admin -r Admin -e admin@example.com -f Admin -l User || true &&
+      airflow webserver & airflow scheduler"
+
+volumes:
+  postgres-db-volume:
