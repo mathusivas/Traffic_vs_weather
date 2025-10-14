@@ -62,7 +62,7 @@ with DAG(
                 "ACCOUNT_KEY": os.environ["AZURE_ACCOUNT_KEY"],
             },
         },
-        notebook_task={"notebook_path": "/Users/ms@puriotech.org/bronze_to_silver"},
+        notebook_task={"notebook_path": "/Users/ms@puriotech.org/bronze_to_gold"},
         timeout_seconds=60 * 45,
     )
 
